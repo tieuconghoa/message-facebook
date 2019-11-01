@@ -92,6 +92,7 @@ function handleMessage(event) {
   var recipientID = event.recipient.id;
   var timeOfMessage = event.timestamp;
   var message = event.message;
+  var  quickReply = event.message.quick_reply;
   
   console.log("Recivived message for user % d and page %d at %d with message: ", senderID, recipientID, timeOfMessage);
   console.log(JSON.stringify(message));
@@ -118,10 +119,13 @@ function handleMessage(event) {
         sendplay(senderID);
         break;
       default:
-        sendTextMessage(senderID, messageText);
+        sendDefaultAnswer(senderID, messageText);
     }
   } else if(messageAttachments){
     sendTextMessage(senderID,"Message with attachments received")
+  }
+  if(event.message.quick_reply){
+    sendQuickReply(
   }
 }
 
@@ -273,7 +277,7 @@ function sendGetStarted(recipientID){
     }
   })
 }
-
+function sendReply()
 function callSendAPI(messageData) {
   // Construct the message body
   // Send the HTTP request to the Messenger Platform
