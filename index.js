@@ -1,5 +1,5 @@
 'use strict';
-const PAGE_ACCESS_TOKEN = 'EAAEVgJ1gCn4BAJwnlS8jicfGra31NfYxHsPW9QLkP4WvIqT8ra8H3yW3ZAa6HZB0ra8iOoaMbxiYq5nN9G60rDlecpZCUph8OWWBvTCb0Qn1tiZCe3QWLFUoPje3ZBkMgQzODXctdJCk1A9xnz5sAdSyL8aM9ZAa8XQEHJu0eLK7oUcKgWax31iZA4lD8G7R7YZD';
+const PAGE_ACCESS_TOKEN = '';
 // Imports dependencies and set up http server
 const 
   request = require('request'),
@@ -14,6 +14,15 @@ const
 // Sets server port and logs message on success
 app.listen(process.env.PORT || 1337, () => console.log('webhook is listening'));
 
+var engines = require('consolidate');
+
+app.set('views', __dirname + '/views');
+app.engine('html', engines.mustache);
+app.set('view engine', 'html');
+
+app.get('/', function(req, res){
+  res.render('index.html');
+});
 // Accepts GET requests at the /webhook endpoint
 app.get('/webhook', (req, res) => {
   
@@ -43,7 +52,6 @@ app.get('/webhook', (req, res) => {
 });
 // Accepts POST requests at /webhook endpoint
 app.post('/webhook', (req, res) => {  
-
   // Parse the request body from the POST
   let data  = req.body;
 
@@ -92,7 +100,7 @@ function handleMessage(event) {
   var recipientID = event.recipient.id;
   var timeOfMessage = event.timestamp;
   var message = event.message;
-  var  quickReply = event.message.quick_reply;
+  var quickReply = message.quick_reply;
   
   console.log("Recivived message for user % d and page %d at %d with message: ", senderID, recipientID, timeOfMessage);
   console.log(JSON.stringify(message));
@@ -119,17 +127,18 @@ function handleMessage(event) {
         sendplay(senderID);
         break;
       default:
-        sendDefaultAnswer(senderID, messageText);
+          defaultAnswer(senderID,messageText)
     }
   } else if(messageAttachments){
     sendTextMessage(senderID,"Message with attachments received")
   }
   if(event.message.quick_reply){
-    sendQuickReply(
+    sendQuickReply(senderID,quickReply,messageId,messageText)
   }
 }
 
 function handlePostback(event) {
+
     var senderID = event.sender.id;
     var recipientID = event.recipient.id;
     var timeOfPostback = event.timestamp;
@@ -142,6 +151,15 @@ function handlePostback(event) {
       case 'GET_STARTED':
         sendGetStarted(senderID);
         break; 
+      case 'start':
+        sendStart(senderID);
+        break;
+      case 'menu1':
+        sendSections(senderID);
+        break;
+      case 'section1':
+        sendquickreply1(senderID);
+        break;
     }
   }
 
@@ -233,7 +251,7 @@ function sendplay(recipientID){
   callSendAPI(messageData);
 }
 
-function sendGetStarted(recipientID){
+function sendGetStarted(recipientID) {
   request({
     url : "https://graph.facebook.com/v2.6/"+recipientID,
     qs: { access_token: PAGE_ACCESS_TOKEN,
@@ -263,9 +281,9 @@ function sendGetStarted(recipientID){
             type : "template",
             payload : {
               template_type : "button",
-              text : "Hi welcome : )" + name + " " + lname + " to my bot",
+              text : "Hi " + name + " " + lname + " welcome to my bot",
               buttons : [{
-                type : "posttback",
+                type : "postback",
                 title : "start now",
                 payload :"start"
               }]
@@ -277,7 +295,185 @@ function sendGetStarted(recipientID){
     }
   })
 }
-function sendReply()
+
+function sendStart(recipientID){
+  request({
+    url : "https://graph.facebook.com/v2.6/"+recipientID,
+    qs: { access_token: PAGE_ACCESS_TOKEN,
+      fields : "" 
+    },
+    method : "GET",
+  },function(err, res, body){
+    if(err){
+      console.log("error getting username")
+    } else {
+      var bodyObj = JSON.parse(body);
+      var name = bodyObj.first_name
+      var lname = bodyObj.last_name
+      var pc = bodyObj.profile_pic
+      var locale = bodyObj.locale
+      var timezone = bodyObj.timezone
+      var gender  = bodyObj.gender
+
+      console.log(JSON.parse(body))
+
+      var messageData = {
+        recipient : {
+          id : recipientID
+        },
+        message : {
+          attachment : {
+            type : "template",
+            payload : {
+              template_type : "button",
+              text : "Hi " + name,
+              buttons : [{
+                type : "postback",
+                title : "Menu1",
+                payload :"menu1"
+              },{
+                type : "postback",
+                title : "jahjkahjkas",
+                payload :"menu2"
+              },{
+                type : "postback",
+                title : "Menu3",
+                payload :"menu3"
+              }]
+            }
+          }
+        }
+      };
+      callSendAPI(messageData);
+    }
+  })
+}
+function sendSections(recipientID){
+  var messageData = {
+    recipient : {
+      id : recipientID
+    },
+    message : {
+      attachment : {
+        type : "template",
+        payload : {
+          template_type : "button",
+          text : "menu1",
+          buttons : [{
+            type : "postback",
+            title : "Section1",
+            payload : "section1"
+          },{
+            type : "postback",
+            title : "Section2",
+            payload : "section2"
+          },{
+            type : "postback",
+            title : "Section3",
+            payload : "section3"
+          }]
+        }
+      }
+    }
+  };
+  callSendAPI(messageData);
+}
+
+function sendquickreply1(recipientID){
+  var messageData = {
+    recipient : {
+      id : recipientID
+    },
+    message : {
+      text : "Pick color:",
+      "quick_replies": [{
+        "content_type": "text",
+        "title":"Green",
+        "payload" : "quick1"
+      },{
+        "content_type": "text",
+        "title":"Red",
+        "payload" : "quick1"
+      },{
+        "content_type": "text",
+        "title":"Blue",
+        "payload" : "quick1"
+      },{
+        "content_type": "text",
+        "title":"img",
+        "payload" : "quick1"
+      }]
+    }
+  }
+  console.log("quick 1 test success");
+  callSendAPI(messageData);
+}
+function sendQuickReply(senderID,quickReply,messageId,messageText){
+  var quickReplyPayload = quickReply.payload;
+  console.log("Quick reply for message %s with payload %s",messageId,quickReplyPayload);
+  if(quickReplyPayload){
+    switch (quickReplyPayload) {
+      case 'quick1':
+        if(messageText) {
+          switch (messageText) {
+            case 'Green':
+              sendTextMessage(senderID,"yes i recieved the quick reply green, thanks!");
+              break;
+            case 'Red':
+              sendTextMessage(senderID,"yes i recieved the quick reply red, thanks!");
+              break;
+            case 'Blue':
+              sendTextMessage(senderID,"yes i recieved the quick reply blue, thanks!");
+              break;
+            case 'img':
+              sendPhoto(senderID);
+              break;
+          }
+        }
+        break;
+        default:
+          sendTextMessage(senderID,"payload is not difined");
+    }
+  }
+}
+
+function sendPhoto(recipientID){
+  const get_random_photo = ((ar) => (ar[Math.floor(Math.random()*ar.length)]));
+  var photo1 = "https://images.pexels.com/photos/1391498/pexels-photo-1391498.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500";
+  var photo2 = "https://images.pexels.com/photos/1382731/pexels-photo-1382731.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500";
+  const photo = [photo1,photo2];
+
+  var messageData = {
+    recipient : {
+      id : recipientID
+    },
+    message: {
+      attachment : {
+        type : "image",
+        payload: {
+          url : get_random_photo(photo)
+        }
+      }
+    }
+  }
+  callSendAPI(messageData);
+}
+app.post("/message", (req,res) => {
+  let data = req.body.message;
+  defaultAnswer(data);
+
+});
+function defaultAnswer(text){
+      var messageData = {
+        recipient : {
+          id : '2223248654408420'
+        },
+        message : {
+          text : text
+        }
+      } 
+      callSendAPI(messageData)
+    }
 function callSendAPI(messageData) {
   // Construct the message body
   // Send the HTTP request to the Messenger Platform
